@@ -26,14 +26,12 @@ npm link
 `.bs` 拡張子のファイルを `bs` コマンドで実行します：
 
 ```bash
-bs main.bs
+bs ファイルのパス
 ```
 
-### コード例 (`main.bs`)
+### コード例
 
-`main.bs` に記述されている基本的な使い方は以下の通りです。
-
-```javascript
+```
 #出力#
 print("Hello World!")
 
