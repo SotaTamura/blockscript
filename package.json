@@ -1,0 +1,11 @@
+{
+  "name": "blockscript",
+  "version": "1.0.0",
+  "type": "module",
+  "bin": {
+    "bs": "./interpreter.mts"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.0"
+  }
+}

@@ -1,0 +1,198 @@
+export type Token =
+  | { type: "IDENTIFIER"; value: string }
+  | { type: "NUMBER"; value: number }
+  | { type: "STRING"; value: string }
+  | { type: "BOOLEAN"; value: boolean }
+  | { type: "LPAREN" }
+  | { type: "RPAREN" }
+  | { type: "BEGIN" }
+  | { type: "END" }
+  | { type: "COMMA" }
+  | { type: "ADD" }
+  | { type: "SUB" }
+  | { type: "MUL" }
+  | { type: "DIV" }
+  | { type: "MOD" }
+  | { type: "EQEQ" }
+  | { type: "NOTEQ" }
+  | { type: "LESS" }
+  | { type: "LESSEQ" }
+  | { type: "GREATER" }
+  | { type: "GREATEREQ" }
+  | { type: "AND" }
+  | { type: "OR" }
+  | { type: "NOT" }
+  | { type: "EQ" }
+  | { type: "RETURN" }
+  | { type: "FUNCTION" };
+
+export function tokenize(input: string): Token[] {
+  const tokens: Token[] = [];
+  let i = 0;
+
+  while (i < input.length) {
+    const char = input[i];
+
+    switch (char) {
+      case " ":
+      case "\t":
+      case "\n":
+      case "\r":
+        i++;
+        continue;
+
+      case ",":
+        tokens.push({ type: "COMMA" });
+        i++;
+        continue;
+
+      case "(":
+        tokens.push({ type: "LPAREN" });
+        i++;
+        continue;
+
+      case ")":
+        tokens.push({ type: "RPAREN" });
+        i++;
+        continue;
+
+      case "{":
+        tokens.push({ type: "BEGIN" });
+        i++;
+        continue;
+
+      case "}":
+        tokens.push({ type: "END" });
+        i++;
+        continue;
+
+      case "+":
+        tokens.push({ type: "ADD" });
+        i++;
+        continue;
+
+      case "-":
+        tokens.push({ type: "SUB" });
+        i++;
+        continue;
+
+      case "*":
+        tokens.push({ type: "MUL" });
+        i++;
+        continue;
+
+      case "/":
+        tokens.push({ type: "DIV" });
+        i++;
+        continue;
+
+      case "%":
+        tokens.push({ type: "MOD" });
+        i++;
+        continue;
+
+      case "&":
+        tokens.push({ type: "AND" });
+        i++;
+        continue;
+
+      case "|":
+        tokens.push({ type: "OR" });
+        i++;
+        continue;
+
+      case "=":
+        if (input[i + 1] === "=") {
+          tokens.push({ type: "EQEQ" });
+          i += 2;
+        } else {
+          tokens.push({ type: "EQ" });
+          i++;
+        }
+        continue;
+
+      case "!":
+        if (input[i + 1] === "=") {
+          tokens.push({ type: "NOTEQ" });
+          i += 2;
+          continue;
+        } else {
+          tokens.push({ type: "NOT" });
+        }
+
+      case "<":
+        if (input[i + 1] === "=") {
+          tokens.push({ type: "LESSEQ" });
+          i += 2;
+        } else {
+          tokens.push({ type: "LESS" });
+          i++;
+        }
+        continue;
+
+      case ">":
+        if (input[i + 1] === "=") {
+          tokens.push({ type: "GREATEREQ" });
+          i += 2;
+        } else {
+          tokens.push({ type: "GREATER" });
+          i++;
+        }
+        continue;
+
+      case '"':
+        let value = "";
+        i++; // 開始の " をスキップ
+        while (i < input.length && input[i] !== '"') {
+          value += input[i++];
+        }
+        i++; // 終了の " をスキップ
+        tokens.push({ type: "STRING", value });
+        continue;
+
+      default:
+        // 数値
+        if (/[0-9]/.test(char)) {
+          let value = "";
+          while (i < input.length && /[0-9]/.test(input[i])) {
+            value += input[i++];
+          }
+          tokens.push({ type: "NUMBER", value: Number(value) });
+          continue;
+        }
+
+        // 変数・識別子
+        if (/[a-zA-Z_]/.test(char)) {
+          let value = "";
+          while (i < input.length && /[a-zA-Z0-9_]/.test(input[i])) {
+            value += input[i++];
+          }
+          switch (value) {
+            case "true":
+              tokens.push({ type: "BOOLEAN", value: true });
+              continue;
+            case "false":
+              tokens.push({ type: "BOOLEAN", value: false });
+              continue;
+
+            case "return":
+              tokens.push({ type: "RETURN" });
+              continue;
+
+            case "function":
+              tokens.push({ type: "FUNCTION" });
+              continue;
+
+            default:
+              tokens.push({ type: "IDENTIFIER", value });
+              continue;
+          }
+        }
+
+        throw new Error("Unexpected character: " + char);
+    }
+  }
+
+  tokens.push({ type: "END" });
+  return tokens;
+}
