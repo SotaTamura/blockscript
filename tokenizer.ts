@@ -115,10 +115,11 @@ export function tokenize(input: string): Token[] {
         if (input[i + 1] === "=") {
           tokens.push({ type: "NOTEQ" });
           i += 2;
-          continue;
         } else {
           tokens.push({ type: "NOT" });
+          i++;
         }
+        continue;
 
       case "<":
         if (input[i + 1] === "=") {
@@ -138,6 +139,14 @@ export function tokenize(input: string): Token[] {
           tokens.push({ type: "GREATER" });
           i++;
         }
+        continue;
+
+      case "#":
+        i++;
+        while (input[i] !== "#") {
+          i++;
+        }
+        i++;
         continue;
 
       case '"':

@@ -1,82 +1,33 @@
-/** コード全体\
- * program = factor*
- */
+/** コード全体 */
 export type Program = {
   type: "program";
   body: Factor[];
 };
 
-/** 式\
- * expression = orExpression
- */
-export type Expression = OrExpression;
+/** 式のルート */
+export type Expression = BinaryExpression | UnaryExpression | Factor;
 
-/** OR式\
- * orExpression = (orExpression "|" andExpression) | andExpression
- */
-export type OrExpression =
-  | {
-      type: "orExpression";
-      lhs: OrExpression;
-      rhs: AndExpression;
-    }
-  | AndExpression;
+/** 二項演算 */
+export type BinaryExpression = {
+  type: "binaryExpression";
+  op:
+    | "ADD" | "SUB" | "MUL" | "DIV" | "MOD"
+    | "EQEQ" | "NOTEQ" | "LESS" | "LESSEQ" | "GREATER" | "GREATEREQ"
+    | "AND" | "OR";
+  lhs: Expression;
+  rhs: Expression;
+};
 
-/** AND式\
- * andExpression = (andExpression "&" relation) | relation
- */
-export type AndExpression =
-  | {
-      type: "andExpression";
-      lhs: AndExpression;
-      rhs: Relation;
-    }
-  | Relation;
+/** 単項演算 */
+export type UnaryExpression = {
+  type: "unaryExpression";
+  op: "NOT";
+  param: Expression;
+};
 
-/** 関係\
- * relation = (additive ("==" | "<" | "<=" | ">" | ">=") additive) | additive
- */
-export type Relation =
-  | {
-      type: "relation";
-      lhs: Additive;
-      op: "EQEQ" | "NOTEQ" | "LESS" | "LESSEQ" | "GREATER" | "GREATEREQ";
-      rhs: Additive;
-    }
-  | Additive;
-
-/** 多項式\
- * additive = (additive ("+" | "-") multiplicative) | multiplicative
- */
-export type Additive =
-  | {
-      type: "additive";
-      lhs: Additive;
-      op: "ADD" | "SUB";
-      rhs: Multiplicative;
-    }
-  | Multiplicative;
-
-/** 項\
- * multiplicative = (multiplicative ("*" | "/" | "%") factor) | factor
- */
-export type Multiplicative =
-  | {
-      type: "multiplicative";
-      lhs: Multiplicative;
-      op: "MUL" | "DIV" | "MOD";
-      rhs: Factor;
-    }
-  | Factor;
-
-/** 因子\
- * factor = "(" expression ")" | "{" program "}" | functionCall | assign | return | identifier | functionFactor | numberLiteral | stringLiteral
- */
+/** 因子（最小単位） */
 export type Factor =
-  | {
-      type: "expressionFactor";
-      body: Expression;
-    }
+  | { type: "expressionFactor"; body: Expression }
   | Program
   | FunctionCall
   | Assign
@@ -87,27 +38,21 @@ export type Factor =
   | StringLiteral
   | BooleanLiteral;
 
-/** 関数呼び出し\
- * functionCall = identifier "(" expression* ")"
- */
+/** 関数呼び出し */
 export type FunctionCall = {
   type: "functionCall";
   callee: Identifier;
   params: Expression[];
 };
 
-/** 代入\
- * assign = identifier "=" expression
- */
+/** 代入 */
 export type Assign = {
   type: "assign";
   variable: Identifier;
   value: Expression;
 };
 
-/** リターン\
- * return = "return" expression
- */
+/** リターン */
 export type Return = {
   type: "return";
   value: Expression;

@@ -20,65 +20,54 @@ export function parse(tokens: Token[]): AST.Program {
   /** コードの解析 */
   function parseProgram(): AST.Program {
     const body: AST.Factor[] = [];
-
     while (peek().type !== "END") {
       body.push(parseFactor());
     }
-
-    return {
-      type: "program",
-      body,
-    };
+    return { type: "program", body };
   }
 
   /** 式の解析 */
   function parseExpression(): AST.Expression {
-    return parseOrExpression();
+    return parseOr();
   }
 
-  /** OR式の解析 */
-  function parseOrExpression(): AST.OrExpression {
-    let node: AST.OrExpression = parseAndExpression();
-
+  function parseOr(): AST.Expression {
+    let node = parseAnd();
     while (peek().type === "OR") {
       take("OR");
       node = {
-        type: "orExpression",
+        type: "binaryExpression",
+        op: "OR",
         lhs: node,
-        rhs: parseAndExpression(),
+        rhs: parseAnd(),
       };
     }
-
     return node;
   }
 
-  /** AND式の解析 */
-  function parseAndExpression(): AST.AndExpression {
-    let node: AST.AndExpression = parseRelation();
-
+  function parseAnd(): AST.Expression {
+    let node = parseRelation();
     while (peek().type === "AND") {
       take("AND");
       node = {
-        type: "andExpression",
+        type: "binaryExpression",
+        op: "AND",
         lhs: node,
         rhs: parseRelation(),
       };
     }
-
     return node;
   }
 
-  /** 関係の解析 */
-  function parseRelation(): AST.Relation {
-    let relation: AST.Relation = parseAdditive();
+  function parseRelation(): AST.Expression {
+    let node = parseAdditive();
     if (
       ["EQEQ", "NOTEQ", "LESS", "LESSEQ", "GREATER", "GREATEREQ"].includes(
         peek().type,
       )
     ) {
-      relation = {
-        type: "relation",
-        lhs: relation,
+      node = {
+        type: "binaryExpression",
         op: take(peek().type).type as
           | "EQEQ"
           | "NOTEQ"
@@ -86,42 +75,49 @@ export function parse(tokens: Token[]): AST.Program {
           | "LESSEQ"
           | "GREATER"
           | "GREATEREQ",
+        lhs: node,
         rhs: parseAdditive(),
       };
     }
-    return relation;
+    return node;
   }
 
-  /** 多項式の解析 */
-  function parseAdditive(): AST.Additive {
-    let additive: AST.Additive = parseMultiplicative();
-
+  function parseAdditive(): AST.Expression {
+    let node = parseMultiplicative();
     while (["ADD", "SUB"].includes(peek().type)) {
-      additive = {
-        type: "additive",
-        lhs: additive,
+      node = {
+        type: "binaryExpression",
         op: take(peek().type).type as "ADD" | "SUB",
+        lhs: node,
         rhs: parseMultiplicative(),
       };
     }
-
-    return additive;
+    return node;
   }
 
-  /** 項の解析 */
-  function parseMultiplicative(): AST.Multiplicative {
-    let multiplicative: AST.Multiplicative = parseFactor();
-
+  function parseMultiplicative(): AST.Expression {
+    let node = parseUnary();
     while (["MUL", "DIV", "MOD"].includes(peek().type)) {
-      multiplicative = {
-        type: "multiplicative",
-        lhs: multiplicative,
+      node = {
+        type: "binaryExpression",
         op: take(peek().type).type as "MUL" | "DIV" | "MOD",
-        rhs: parseFactor(),
+        lhs: node,
+        rhs: parseUnary(),
       };
     }
+    return node;
+  }
 
-    return multiplicative;
+  function parseUnary(): AST.Expression {
+    if (peek().type === "NOT") {
+      take("NOT");
+      return {
+        type: "unaryExpression",
+        op: "NOT",
+        param: parseUnary(), // !!x を可能にするために再帰
+      };
+    }
+    return parseFactor();
   }
 
   /** 因子の解析 */
@@ -131,10 +127,7 @@ export function parse(tokens: Token[]): AST.Program {
         take("LPAREN");
         const expression = parseExpression();
         take("RPAREN");
-        return {
-          type: "expressionFactor",
-          body: expression,
-        };
+        return { type: "expressionFactor", body: expression };
 
       case "BEGIN":
         take("BEGIN");
@@ -144,48 +137,39 @@ export function parse(tokens: Token[]): AST.Program {
 
       case "IDENTIFIER":
         const name = take("IDENTIFIER").value;
-        switch (peek().type) {
-          case "LPAREN":
-            return parseFunctionCall(name);
-          case "EQ":
-            return parseAssign(name);
-          default:
-            return parseIdentifier(name);
-        }
+        if (peek().type === "LPAREN") return parseFunctionCall(name);
+        if (peek().type === "EQ") return parseAssign(name);
+        return { type: "identifier", name };
 
       case "RETURN":
-        return parseReturn();
+        take("RETURN");
+        return { type: "return", value: parseExpression() };
 
       case "FUNCTION":
         return parseFunctionFactor();
 
       case "NUMBER":
-        return parseNumberLiteral();
+        return { type: "numberLiteral", value: take("NUMBER").value };
 
       case "STRING":
-        return parseStringLiteral();
+        return { type: "stringLiteral", value: take("STRING").value };
 
       case "BOOLEAN":
-        return parseBooleanLiteral();
+        return { type: "booleanLiteral", value: take("BOOLEAN").value };
 
       default:
         throw new Error("Unexpected factor token: " + JSON.stringify(peek()));
     }
   }
 
-  /** 関数呼び出しの解析 */
   function parseFunctionCall(name: string): AST.FunctionCall {
     take("LPAREN");
-
     const params: AST.Expression[] = [];
-
     while (peek().type !== "RPAREN") {
       params.push(parseExpression());
       if (peek().type === "COMMA") take("COMMA");
     }
-
     take("RPAREN");
-
     return {
       type: "functionCall",
       callee: { type: "identifier", name },
@@ -193,10 +177,8 @@ export function parse(tokens: Token[]): AST.Program {
     };
   }
 
-  /** 代入の解析 */
   function parseAssign(name: string): AST.Assign {
     take("EQ");
-
     return {
       type: "assign",
       variable: { type: "identifier", name },
@@ -204,67 +186,16 @@ export function parse(tokens: Token[]): AST.Program {
     };
   }
 
-  /** リターンの解析 */
-  function parseReturn(): AST.Return {
-    take("RETURN");
-
-    return {
-      type: "return",
-      value: parseExpression(),
-    };
-  }
-
-  /** 変数の解析 */
-  function parseIdentifier(name: string): AST.Identifier {
-    return {
-      type: "identifier",
-      name,
-    };
-  }
-
-  /** 関数の解析 */
   function parseFunctionFactor(): AST.FunctionFactor {
     take("FUNCTION");
     take("LPAREN");
-
     const params: string[] = [];
-
     while (peek().type !== "RPAREN") {
       params.push(take("IDENTIFIER").value);
       if (peek().type === "COMMA") take("COMMA");
     }
-
     take("RPAREN");
-
-    return {
-      type: "functionFactor",
-      params,
-      body: parseExpression(),
-    };
-  }
-
-  /** 数値の解析 */
-  function parseNumberLiteral(): AST.NumberLiteral {
-    return {
-      type: "numberLiteral",
-      value: take("NUMBER").value,
-    };
-  }
-
-  /** 文字列の解析 */
-  function parseStringLiteral(): AST.StringLiteral {
-    return {
-      type: "stringLiteral",
-      value: take("STRING").value,
-    };
-  }
-
-  /** ブール値の解析 */
-  function parseBooleanLiteral(): AST.BooleanLiteral {
-    return {
-      type: "booleanLiteral",
-      value: take("BOOLEAN").value,
-    };
+    return { type: "functionFactor", params, body: parseExpression() };
   }
 
   return parseProgram();
