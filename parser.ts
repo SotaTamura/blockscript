@@ -197,7 +197,7 @@ export function parse(tokens: Token[]): AST.Program {
   function parsePostfix(): AST.Expression {
     let node = parseFactor();
 
-    while (peek().type === "LPAREN" || peek().type === "LBRACKET") {
+    while (["LPAREN", "LBRACKET", "DOT"].includes(peek().type)) {
       if (peek().type === "LPAREN") {
         node = parseCall(node);
       } else {
@@ -223,13 +223,19 @@ export function parse(tokens: Token[]): AST.Program {
     };
   }
 
-  function parseGetItem(list: AST.Expression): AST.GetItem {
-    take("LBRACKET");
-    const index = parseExpression();
-    take("RBRACKET");
+  function parseGetItem(iterable: AST.Expression): AST.GetItem {
+    let index: AST.Expression | string;
+    if (peek().type === "LBRACKET") {
+      take("LBRACKET");
+      index = parseExpression();
+      take("RBRACKET");
+    } else {
+      take("DOT");
+      index = take("IDENTIFIER").value;
+    }
     return {
       type: "getItem",
-      list,
+      list: iterable,
       index,
     };
   }
@@ -242,21 +248,14 @@ export function parse(tokens: Token[]): AST.Program {
         take("RPAREN");
         return { type: "expressionFactor", body: expression };
 
-      case "LBRACKET":
-        take("LBRACKET");
-        const items: AST.Expression[] = [];
-        while (peek().type !== "RBRACKET") {
-          items.push(parseExpression());
-          if (peek().type === "COMMA") take("COMMA");
-        }
-        take("RBRACKET");
-        return { type: "list", items };
-
       case "BEGIN":
         take("BEGIN");
-        const program = parseProgram();
+        let res: AST.Factor;
+        if (peek().type === "IDENTIFIER" && tokens[i + 1]?.type === "COLON")
+          res = parseObjectLiteral();
+        else res = parseProgram();
         take("END");
-        return program;
+        return res;
 
       case "LBRACKET":
         return parseList();
@@ -301,6 +300,18 @@ export function parse(tokens: Token[]): AST.Program {
       default:
         throw new Error("Unexpected factor token: " + JSON.stringify(peek()));
     }
+  }
+
+  function parseObjectLiteral(): AST.ObjectLiteral {
+    const props: { key: string; value: AST.Expression }[] = [];
+    while (peek().type !== "END") {
+      const key = take("IDENTIFIER").value;
+      take("COLON");
+      const value = parseExpression();
+      props.push({ key, value });
+      if (peek().type === "COMMA") take("COMMA");
+    }
+    return { type: "objectLiteral", props };
   }
 
   function parseList(): AST.List {

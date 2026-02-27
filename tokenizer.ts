@@ -10,6 +10,8 @@ export type Token =
   | { type: "BEGIN" }
   | { type: "END" }
   | { type: "COMMA" }
+  | { type: "COLON" }
+  | { type: "DOT" }
   | { type: "ADD" }
   | { type: "SUB" }
   | { type: "MUL" }
@@ -88,6 +90,16 @@ export function tokenize(input: string): Token[] {
 
       case "}":
         tokens.push({ type: "END" });
+        i++;
+        continue;
+
+      case ":":
+        tokens.push({ type: "COLON" });
+        i++;
+        continue;
+
+      case ".":
+        tokens.push({ type: "DOT" });
         i++;
         continue;
 

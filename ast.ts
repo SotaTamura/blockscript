@@ -90,6 +90,7 @@ export type Factor =
   | Continue
   | Identifier
   | List
+  | ObjectLiteral
   | FunctionFactor
   | NumberLiteral
   | StringLiteral
@@ -101,11 +102,20 @@ export type List = {
   items: Expression[];
 };
 
-/** 配列の要素取得 */
+/** オブジェクト */
+export type ObjectLiteral = {
+  type: "objectLiteral";
+  props: {
+    key: string;
+    value: Expression;
+  }[];
+};
+
+/** 要素取得 */
 export type GetItem = {
   type: "getItem";
   list: Expression;
-  index: Expression;
+  index: Expression | string;
 };
 
 /** リターン */

@@ -76,8 +76,15 @@ export function evaluate(node: AST.Program): any {
           switch (node.variable.type) {
             case "getItem":
               const list = evaluateExpression(node.variable.list, env);
-              const index = evaluateExpression(node.variable.index, env);
-              list[index - 1] = value;
+              let index;
+              if (typeof node.variable.index === "string")
+                index = node.variable.index;
+              else {
+                const rawIndex = evaluateExpression(node.variable.index, env);
+                if (typeof rawIndex === "number") index = rawIndex - 1;
+                else index = rawIndex;
+              }
+              list[index] = value;
               return value;
             case "identifier":
               setVariable(env, node.variable.name, value);
@@ -146,9 +153,14 @@ export function evaluate(node: AST.Program): any {
             env,
           )(...node.params.map((p) => evaluateExpression(p, env)));
         case "getItem":
-          return evaluateExpression(node.list, env)[
-            evaluateExpression(node.index, env) - 1
-          ];
+          let index;
+          if (typeof node.index === "string") index = node.index;
+          else {
+            const rawIndex = evaluateExpression(node.index, env);
+            if (typeof rawIndex === "number") index = rawIndex - 1;
+            else index = rawIndex;
+          }
+          return evaluateExpression(node.list, env)[index];
         default:
           return evaluateFactor(node, env);
       }
@@ -242,6 +254,12 @@ export function evaluate(node: AST.Program): any {
         return getVariable(env, node.name);
       case "list":
         return node.items.map((i) => evaluateExpression(i, env));
+      case "objectLiteral":
+        const obj: Record<string, any> = {};
+        for (const prop of node.props) {
+          obj[prop.key] = evaluateExpression(prop.value, env);
+        }
+        return obj;
       case "numberLiteral":
         return node.value;
       case "stringLiteral":

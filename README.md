@@ -149,6 +149,17 @@ print(text) #012456789#
 
 evens = for (i in range(1, 10)) if (i % 2 == 0) i
 print(evens) #[2, 4, 6, 8, 10]#
+
+#オブジェクト#
+student = {
+  name: "山田太郎",
+  age: 15,
+  scores: {japanese: 90, math: 70, english: 80}
+}
+
+subject = "math"
+student.scores[subject] = 100
+print(student.scores) #{japanese: 90, math: 100, english: 80}#
 ```
 
 ## 内部アーキテクチャ
