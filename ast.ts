@@ -8,9 +8,12 @@ export type Program = {
 export type Expression =
   | Assign
   | If
+  | While
+  | For
   | BinaryExpression
   | UnaryExpression
   | FunctionCall
+  | GetItem
   | Factor;
 
 /** if文 */
@@ -19,6 +22,28 @@ export type If = {
   cond: Expression;
   consequent: Expression;
   alternate?: Expression;
+};
+
+/** while文 */
+export type While = {
+  type: "while";
+  cond: Expression;
+  body: Expression;
+};
+
+/** for文 */
+export type For = {
+  type: "for";
+  iter: string;
+  list: Expression;
+  body: Expression;
+};
+
+/** 代入 */
+export type Assign = {
+  type: "assign";
+  variable: Identifier | GetItem;
+  value: Expression;
 };
 
 /** 二項式 */
@@ -45,7 +70,7 @@ export type BinaryExpression = {
 /** 単項式 */
 export type UnaryExpression = {
   type: "unaryExpression";
-  op: "NOT";
+  op: "NOT" | "SUB";
   param: Expression;
 };
 
@@ -61,23 +86,44 @@ export type Factor =
   | { type: "expressionFactor"; body: Expression }
   | Program
   | Return
+  | Break
+  | Continue
   | Identifier
+  | List
   | FunctionFactor
   | NumberLiteral
   | StringLiteral
   | BooleanLiteral;
 
-/** 代入 */
-export type Assign = {
-  type: "assign";
-  variable: Identifier;
-  value: Expression;
+/** 配列 */
+export type List = {
+  type: "list";
+  items: Expression[];
+};
+
+/** 配列の要素取得 */
+export type GetItem = {
+  type: "getItem";
+  list: Expression;
+  index: Expression;
 };
 
 /** リターン */
 export type Return = {
   type: "return";
-  value: Expression;
+  value?: Expression;
+};
+
+/** ブレーク */
+export type Break = {
+  type: "break";
+  value?: Expression;
+};
+
+/** 継続 */
+export type Continue = {
+  type: "continue";
+  value?: Expression;
 };
 
 /** 変数名・関数名 */

@@ -5,6 +5,8 @@ export type Token =
   | { type: "BOOLEAN"; value: boolean }
   | { type: "LPAREN" }
   | { type: "RPAREN" }
+  | { type: "LBRACKET" }
+  | { type: "RBRACKET" }
   | { type: "BEGIN" }
   | { type: "END" }
   | { type: "COMMA" }
@@ -27,6 +29,11 @@ export type Token =
   | { type: "FUNCTION" }
   | { type: "IF" }
   | { type: "ELSE" }
+  | { type: "WHILE" }
+  | { type: "FOR" }
+  | { type: "IN" }
+  | { type: "BREAK" }
+  | { type: "CONTINUE" }
   | { type: "SEMICOLON" };
 
 export function tokenize(input: string): Token[] {
@@ -61,6 +68,16 @@ export function tokenize(input: string): Token[] {
 
       case ")":
         tokens.push({ type: "RPAREN" });
+        i++;
+        continue;
+
+      case "[":
+        tokens.push({ type: "LBRACKET" });
+        i++;
+        continue;
+
+      case "]":
+        tokens.push({ type: "RBRACKET" });
         i++;
         continue;
 
@@ -161,7 +178,7 @@ export function tokenize(input: string): Token[] {
 
       case "#":
         i++;
-        while (input[i] !== "#") {
+        while (i < input.length && input[i] !== "#") {
           i++;
         }
         i++;
@@ -216,6 +233,26 @@ export function tokenize(input: string): Token[] {
 
             case "else":
               tokens.push({ type: "ELSE" });
+              continue;
+
+            case "while":
+              tokens.push({ type: "WHILE" });
+              continue;
+
+            case "for":
+              tokens.push({ type: "FOR" });
+              continue;
+
+            case "in":
+              tokens.push({ type: "IN" });
+              continue;
+
+            case "continue":
+              tokens.push({ type: "CONTINUE" });
+              continue;
+
+            case "break":
+              tokens.push({ type: "BREAK" });
               continue;
 
             default:

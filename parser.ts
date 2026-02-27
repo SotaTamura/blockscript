@@ -32,28 +32,16 @@ export function parse(tokens: Token[]): AST.Program {
     switch (peek().type) {
       case "IF":
         return parseIf();
+      case "WHILE":
+        return parseWhile();
+      case "FOR":
+        return parseFor();
       default:
         return parseAssign();
     }
   }
 
-  function parseAssign(): AST.Expression {
-    const node = parseOr();
-    if (peek().type === "EQ") {
-      take("EQ");
-      if (node.type !== "identifier") {
-        throw new Error("Invalid left-hand side in assignment");
-      }
-      return {
-        type: "assign",
-        variable: node,
-        value: parseExpression(),
-      };
-    }
-    return node;
-  }
-
-  function parseIf(): AST.Expression {
+  function parseIf(): AST.If {
     take("IF");
     take("LPAREN");
     const cond = parseExpression();
@@ -70,6 +58,50 @@ export function parse(tokens: Token[]): AST.Program {
       consequent,
       alternate,
     };
+  }
+
+  function parseWhile(): AST.While {
+    take("WHILE");
+    take("LPAREN");
+    const cond = parseExpression();
+    take("RPAREN");
+    return {
+      type: "while",
+      cond,
+      body: parseExpression(),
+    };
+  }
+
+  function parseFor(): AST.For {
+    take("FOR");
+    take("LPAREN");
+    const iter = take("IDENTIFIER").value;
+    take("IN");
+    const list = parseExpression();
+    take("RPAREN");
+
+    return {
+      type: "for",
+      iter,
+      list,
+      body: parseExpression(),
+    };
+  }
+
+  function parseAssign(): AST.Expression {
+    const node = parseOr();
+    if (peek().type === "EQ") {
+      take("EQ");
+      if (node.type !== "identifier" && node.type !== "getItem") {
+        throw new Error("Invalid left-hand side in assignment");
+      }
+      return {
+        type: "assign",
+        variable: node,
+        value: parseExpression(),
+      };
+    }
+    return node;
   }
 
   function parseOr(): AST.Expression {
@@ -150,36 +182,56 @@ export function parse(tokens: Token[]): AST.Program {
   }
 
   function parseUnary(): AST.Expression {
-    if (peek().type === "NOT") {
-      take("NOT");
+    const type = peek().type;
+    if (["NOT", "SUB"].includes(type)) {
+      take(type as "NOT" | "SUB");
       return {
         type: "unaryExpression",
-        op: "NOT",
+        op: type as "NOT" | "SUB",
         param: parseUnary(),
       };
     }
-    return parseFunctionCall();
+    return parsePostfix();
   }
 
-  function parseFunctionCall(): AST.Expression {
+  function parsePostfix(): AST.Expression {
     let node = parseFactor();
 
-    while (peek().type === "LPAREN") {
-      take("LPAREN");
-      const params: AST.Expression[] = [];
-      while (peek().type !== "RPAREN") {
-        params.push(parseExpression());
-        if (peek().type === "COMMA") take("COMMA");
+    while (peek().type === "LPAREN" || peek().type === "LBRACKET") {
+      if (peek().type === "LPAREN") {
+        node = parseCall(node);
+      } else {
+        node = parseGetItem(node);
       }
-      take("RPAREN");
-      node = {
-        type: "functionCall",
-        callee: node,
-        params,
-      };
     }
 
     return node;
+  }
+
+  function parseCall(callee: AST.Expression): AST.FunctionCall {
+    take("LPAREN");
+    const params: AST.Expression[] = [];
+    while (peek().type !== "RPAREN") {
+      params.push(parseExpression());
+      if (peek().type === "COMMA") take("COMMA");
+    }
+    take("RPAREN");
+    return {
+      type: "functionCall",
+      callee,
+      params,
+    };
+  }
+
+  function parseGetItem(list: AST.Expression): AST.GetItem {
+    take("LBRACKET");
+    const index = parseExpression();
+    take("RBRACKET");
+    return {
+      type: "getItem",
+      list,
+      index,
+    };
   }
 
   function parseFactor(): AST.Expression {
@@ -190,11 +242,24 @@ export function parse(tokens: Token[]): AST.Program {
         take("RPAREN");
         return { type: "expressionFactor", body: expression };
 
+      case "LBRACKET":
+        take("LBRACKET");
+        const items: AST.Expression[] = [];
+        while (peek().type !== "RBRACKET") {
+          items.push(parseExpression());
+          if (peek().type === "COMMA") take("COMMA");
+        }
+        take("RBRACKET");
+        return { type: "list", items };
+
       case "BEGIN":
         take("BEGIN");
         const program = parseProgram();
         take("END");
         return program;
+
+      case "LBRACKET":
+        return parseList();
 
       case "IDENTIFIER":
         const name = take("IDENTIFIER").value;
@@ -202,7 +267,24 @@ export function parse(tokens: Token[]): AST.Program {
 
       case "RETURN":
         take("RETURN");
+        if (["SEMICOLON", "END", "RPAREN", "COMMA"].includes(peek().type)) {
+          return { type: "return" };
+        }
         return { type: "return", value: parseExpression() };
+
+      case "BREAK":
+        take("BREAK");
+        if (["SEMICOLON", "END", "RPAREN", "COMMA"].includes(peek().type)) {
+          return { type: "break" };
+        }
+        return { type: "break", value: parseExpression() };
+
+      case "CONTINUE":
+        take("CONTINUE");
+        if (["SEMICOLON", "END", "RPAREN", "COMMA"].includes(peek().type)) {
+          return { type: "continue" };
+        }
+        return { type: "continue", value: parseExpression() };
 
       case "FUNCTION":
         return parseFunctionFactor();
@@ -219,6 +301,17 @@ export function parse(tokens: Token[]): AST.Program {
       default:
         throw new Error("Unexpected factor token: " + JSON.stringify(peek()));
     }
+  }
+
+  function parseList(): AST.List {
+    take("LBRACKET");
+    const items: AST.Expression[] = [];
+    while (peek().type !== "RBRACKET") {
+      items.push(parseExpression());
+      if (peek().type === "COMMA") take("COMMA");
+    }
+    take("RBRACKET");
+    return { type: "list", items };
   }
 
   function parseFunctionFactor(): AST.FunctionFactor {
