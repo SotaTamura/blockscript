@@ -83,7 +83,6 @@ export type FunctionCall = {
 
 /** 因子 */
 export type Factor =
-  | { type: "expressionFactor"; body: Expression }
   | Program
   | Return
   | Break
@@ -94,7 +93,8 @@ export type Factor =
   | FunctionFactor
   | NumberLiteral
   | StringLiteral
-  | BooleanLiteral;
+  | BooleanLiteral
+  | This;
 
 /** 配列 */
 export type List = {
@@ -114,7 +114,7 @@ export type ObjectLiteral = {
 /** 要素取得 */
 export type GetItem = {
   type: "getItem";
-  list: Expression;
+  iterable: Expression;
   index: Expression | string;
 };
 
@@ -165,4 +165,9 @@ export type StringLiteral = {
 export type BooleanLiteral = {
   type: "booleanLiteral";
   value: boolean;
+};
+
+/** this */
+export type This = {
+  type: "this";
 };

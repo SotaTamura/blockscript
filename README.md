@@ -11,7 +11,7 @@ TypeScript と Node.js で構築された、シンプルで軽量なプログラ
 - **関数**: `function` キーワードによる第一級関数の定義。`return` による値の返却（値なしも可）。
 - **基本型**: 数値 (Number)、文字列 (String)、ブール値 (Boolean: `true`/`false`)。
 - **配列 (List)**: `[...]` による配列の作成。インデックスによる要素の取得と更新（**1始まり**）。
-- **ブロック**: `{ ... }` による処理のグループ化。最後に評価された値を返し、新しいスコープを作成します。
+- **ブロック**: `( ... )` による処理のグループ化。最後に評価された値を返し、新しいスコープを作成します。
 - **制御構文（式）**: すべての制御構文は値を返す「式」として扱われます。
   - **条件分岐**: `if (条件) 式 else 式` 。
   - **繰り返し**: `while (条件) 式` 。各ループの結果を配列として返します。
@@ -21,7 +21,11 @@ TypeScript と Node.js で構築された、シンプルで軽量なプログラ
   - `break`, `continue` はオプションで値を返すことができ、ループの結果リストに含まれます。
   - 値を指定しない `continue` は、そのイテレーションの結果をスキップ（フィルタリング）するために使用できます。
 - **再帰**: 関数による再帰呼び出しをサポート。
-- **組み込み関数**: `print` 関数による標準出力。
+- **オブジェクト (Object)**: `{ key: value, ... }` によるオブジェクトの作成。ドット記法 (`obj.key`) やブラケット記法 (`obj["key"]`) によるプロパティの取得と更新。
+- **this キーワード**: オブジェクトのメソッド内で、そのオブジェクト自身を参照します。
+- **組み込み関数**:
+  - `print(値)`: 値を標準出力に表示します。
+  - `range(開始, 終了)`: 開始から終了までの数値を含む配列（例：`range(1, 3)` は `[1, 2, 3]`）を生成します。
 - **コメント**: `#` で囲まれたテキストはコメントとして無視されます。
 
 ## インストール
@@ -68,68 +72,68 @@ print(age == 15) #false#
 print(age == 14) #true#
 
 #ブロック#
-v = {
+v = (
   a = 1
   b = 2
   a + b
-}
+)
 print(v) #3#
 
 #関数#
-add = function (a, b) {
+add = function (a, b) (
   sum = a + b
   return sum
-}
+)
 print(add(3, 4)) #7#
 
-divide = function (a, b) {
+divide = function (a, b) (
   if (b == 0) return;
   return a / b
-}
+)
 
 print(divide(10, 2)) #5#
 print(divide(10, 0)); #undefined#
 
 #即時関数#
-(function () {
+(function () (
   print("Hello!")
-})()
+))()
 
 #条件分岐#
 age = 16
-if (age >= 18) {
+if (age >= 18) (
   print("大人です")
-} else {
+) else (
   print("子供です")
-} #子供です#
+) #子供です#
 
 beverage = if (age >= 20) "ビール" else "ジュース"
 print(beverage) #ジュース#
 
 #再帰#
-fact = function (n) {
-  if (n == 0) {
+fact = function (n) (
+  if (n == 0) (
     return 1
-  }
+  )
 
   return n * fact(n - 1)
-};
+);
 
 print(fact(5)) #120#
 
 #while文#
 i = 0
-while (i < 5) {
+while (i < 5) (
   print(i)
   i = i + 1
-} #0 1 2 3 4#
+) #0 1 2 3 4#
 
 i = 0
 
-print(while (i < 6) {
+print(while (i < 6) (
   if (i == 3) break;
   i = i + 1
-}) #[1, 2, 3]#
+)) #[1, 2, 3]#
 
 #配列#
 studentNames = ["田中", "佐藤", "鈴木"]
@@ -140,10 +144,10 @@ print(studentNames[2]) #内藤#
 #for文#
 text = ""
 
-for (i in range(0, 9)) {
+for (i in range(0, 9)) (
   if (i == 3) continue;
   text = text + i;
-}
+)
 
 print(text) #012456789#
 
@@ -160,6 +164,18 @@ student = {
 subject = "math"
 student.scores[subject] = 100
 print(student.scores) #{japanese: 90, math: 100, english: 80}#
+
+#クラスもどき#
+Student = function (name, age) {
+    name: name
+    age: age
+    introduceSelf: function () (
+        print("私の名前は" + this.name + "です。" + this.age + "歳です。")
+    )
+}
+
+tanaka = Student("田中", 18)
+tanaka.introduceSelf() #私の名前は田中です。18歳です。#
 ```
 
 ## 内部アーキテクチャ

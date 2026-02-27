@@ -19,7 +19,7 @@ export function parse(tokens: Token[]): AST.Program {
 
   function parseProgram(): AST.Program {
     const body: AST.Expression[] = [];
-    while (peek().type !== "END") {
+    while (peek().type !== "RPAREN" && peek().type !== "EOF") {
       body.push(parseExpression());
       if (peek().type === "SEMICOLON") {
         take("SEMICOLON");
@@ -235,7 +235,7 @@ export function parse(tokens: Token[]): AST.Program {
     }
     return {
       type: "getItem",
-      list: iterable,
+      iterable: iterable,
       index,
     };
   }
@@ -244,18 +244,15 @@ export function parse(tokens: Token[]): AST.Program {
     switch (peek().type) {
       case "LPAREN":
         take("LPAREN");
-        const expression = parseExpression();
+        const program = parseProgram();
         take("RPAREN");
-        return { type: "expressionFactor", body: expression };
+        return program;
 
       case "BEGIN":
         take("BEGIN");
-        let res: AST.Factor;
-        if (peek().type === "IDENTIFIER" && tokens[i + 1]?.type === "COLON")
-          res = parseObjectLiteral();
-        else res = parseProgram();
+        const object = parseObjectLiteral();
         take("END");
-        return res;
+        return object;
 
       case "LBRACKET":
         return parseList();
@@ -296,6 +293,10 @@ export function parse(tokens: Token[]): AST.Program {
 
       case "BOOLEAN":
         return { type: "booleanLiteral", value: take("BOOLEAN").value };
+
+      case "THIS":
+        take("THIS");
+        return { type: "this" };
 
       default:
         throw new Error("Unexpected factor token: " + JSON.stringify(peek()));

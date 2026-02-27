@@ -12,6 +12,7 @@ export type Token =
   | { type: "COMMA" }
   | { type: "COLON" }
   | { type: "DOT" }
+  | { type: "THIS" }
   | { type: "ADD" }
   | { type: "SUB" }
   | { type: "MUL" }
@@ -36,7 +37,8 @@ export type Token =
   | { type: "IN" }
   | { type: "BREAK" }
   | { type: "CONTINUE" }
-  | { type: "SEMICOLON" };
+  | { type: "SEMICOLON" }
+  | { type: "EOF" };
 
 export function tokenize(input: string): Token[] {
   const tokens: Token[] = [];
@@ -257,6 +259,10 @@ export function tokenize(input: string): Token[] {
               tokens.push({ type: "BREAK" });
               continue;
 
+            case "this":
+              tokens.push({ type: "THIS" });
+              continue;
+
             default:
               tokens.push({ type: "IDENTIFIER", value });
               continue;
@@ -267,6 +273,6 @@ export function tokenize(input: string): Token[] {
     }
   }
 
-  tokens.push({ type: "END" });
+  tokens.push({ type: "EOF" });
   return tokens;
 }

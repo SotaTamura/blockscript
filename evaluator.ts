@@ -3,6 +3,7 @@ import * as AST from "./ast.ts";
 type Environment = {
   variables: Record<string, any>;
   parent?: Environment;
+  thisValue?: any;
 };
 
 class ReturnSignal extends Error {
@@ -59,6 +60,12 @@ function setVariable(env: Environment, name: string, value: any): any {
   return value;
 }
 
+function getThis(env: Environment): any {
+  if ("thisValue" in env) return env.thisValue;
+  if (env.parent) return getThis(env.parent);
+  return undefined;
+}
+
 export function evaluate(node: AST.Program): any {
   function evaluateProgram(node: AST.Program, env: Environment): any {
     let res: any;
@@ -75,7 +82,7 @@ export function evaluate(node: AST.Program): any {
           const value = evaluateExpression(node.value, env);
           switch (node.variable.type) {
             case "getItem":
-              const list = evaluateExpression(node.variable.list, env);
+              const list = evaluateExpression(node.variable.iterable, env);
               let index;
               if (typeof node.variable.index === "string")
                 index = node.variable.index;
@@ -148,11 +155,10 @@ export function evaluate(node: AST.Program): any {
         case "unaryExpression":
           return evaluateUnary(node, env);
         case "functionCall":
-          return evaluateExpression(
-            node.callee,
-            env,
-          )(...node.params.map((p) => evaluateExpression(p, env)));
+          const args = node.params.map((p) => evaluateExpression(p, env));
+          return evaluateExpression(node.callee, env)(...args);
         case "getItem":
+          const target = evaluateExpression(node.iterable, env);
           let index;
           if (typeof node.index === "string") index = node.index;
           else {
@@ -160,7 +166,11 @@ export function evaluate(node: AST.Program): any {
             if (typeof rawIndex === "number") index = rawIndex - 1;
             else index = rawIndex;
           }
-          return evaluateExpression(node.list, env)[index];
+          const val = target[index];
+          if (typeof val === "function") {
+            return val.bind(target);
+          }
+          return val;
         default:
           return evaluateFactor(node, env);
       }
@@ -223,8 +233,6 @@ export function evaluate(node: AST.Program): any {
 
   function evaluateFactor(node: AST.Factor, env: Environment): any {
     switch (node.type) {
-      case "expressionFactor":
-        return evaluateExpression(node.body, env);
       case "program":
         return evaluateProgram(node, { variables: {}, parent: env });
       case "return":
@@ -240,8 +248,12 @@ export function evaluate(node: AST.Program): any {
           node.value ? evaluateExpression(node.value, env) : undefined,
         );
       case "functionFactor":
-        return (...args: any[]) => {
-          const childEnv: Environment = { variables: {}, parent: env };
+        return function (this: any, ...args: any[]) {
+          const childEnv: Environment = {
+            variables: {},
+            parent: env,
+            thisValue: this,
+          };
           node.params.forEach((p, i) => (childEnv.variables[p] = args[i]));
           try {
             return evaluateExpression(node.body, childEnv);
@@ -250,6 +262,8 @@ export function evaluate(node: AST.Program): any {
             throw s;
           }
         };
+      case "this":
+        return getThis(env);
       case "identifier":
         return getVariable(env, node.name);
       case "list":
