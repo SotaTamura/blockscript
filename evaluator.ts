@@ -50,12 +50,27 @@ export function evaluate(node: AST.Program): any {
   function evaluateExpression(node: AST.Expression, env: Environment): any {
     if ("type" in node) {
       switch (node.type) {
+        case "assign":
+          return setVariable(
+            env,
+            node.variable.name,
+            evaluateExpression(node.value, env),
+          );
+        case "if":
+          return evaluateExpression(node.cond, env)
+            ? evaluateExpression(node.consequent, env)
+            : node.alternate
+              ? evaluateExpression(node.alternate, env)
+              : undefined;
         case "binaryExpression":
           return evaluateBinary(node, env);
         case "unaryExpression":
           return evaluateUnary(node, env);
         case "functionCall":
-          return evaluateFunctionCall(node, env);
+          return evaluateExpression(
+            node.callee,
+            env,
+          )(...node.params.map((p) => evaluateExpression(p, env)));
         default:
           return evaluateFactor(node, env);
       }
@@ -64,7 +79,6 @@ export function evaluate(node: AST.Program): any {
   }
 
   function evaluateBinary(node: AST.BinaryExpression, env: Environment): any {
-    // ショートサーキットが必要な論理演算
     if (node.op === "OR")
       return (
         evaluateExpression(node.lhs, env) || evaluateExpression(node.rhs, env)
@@ -115,25 +129,12 @@ export function evaluate(node: AST.Program): any {
     }
   }
 
-  function evaluateFunctionCall(node: AST.FunctionCall, env: Environment): any {
-    return evaluateExpression(
-      node.callee,
-      env,
-    )(...node.params.map((p) => evaluateExpression(p, env)));
-  }
-
   function evaluateFactor(node: AST.Factor, env: Environment): any {
     switch (node.type) {
       case "expressionFactor":
         return evaluateExpression(node.body, env);
       case "program":
         return evaluateProgram(node, { variables: {}, parent: env });
-      case "assign":
-        return setVariable(
-          env,
-          node.variable.name,
-          evaluateExpression(node.value, env),
-        );
       case "return":
         throw new ReturnSignal(evaluateExpression(node.value, env));
       case "functionFactor":

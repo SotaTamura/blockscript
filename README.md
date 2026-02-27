@@ -74,6 +74,28 @@ print(add(3, 4));
 (function () {
   print("Hello!")
 })()
+
+#条件分岐#
+age = 16
+age >= 18 ? {
+  print("大人です")
+} : {
+  print("子供です")
+}
+
+beverage = age >= 20 ? "ビール" : "ジュース"
+print(beverage)
+
+#再帰#
+fact = function (n) {
+  n == 0 ? {
+    return 1
+  }
+
+  return n * fact(n - 1)
+};
+
+print(fact(5))
 ```
 
 ## 内部アーキテクチャ

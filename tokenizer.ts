@@ -25,6 +25,8 @@ export type Token =
   | { type: "EQ" }
   | { type: "RETURN" }
   | { type: "FUNCTION" }
+  | { type: "IF" }
+  | { type: "ELSE" }
   | { type: "SEMICOLON" };
 
 export function tokenize(input: string): Token[] {
@@ -104,6 +106,16 @@ export function tokenize(input: string): Token[] {
 
       case "|":
         tokens.push({ type: "OR" });
+        i++;
+        continue;
+
+      case "?":
+        tokens.push({ type: "IF" });
+        i++;
+        continue;
+
+      case ":":
+        tokens.push({ type: "ELSE" });
         i++;
         continue;
 

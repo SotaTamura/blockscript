@@ -17,7 +17,6 @@ export function parse(tokens: Token[]): AST.Program {
     return token as Extract<Token, { type: T }>;
   }
 
-  /** コードの解析 */
   function parseProgram(): AST.Program {
     const body: AST.Expression[] = [];
     while (peek().type !== "END") {
@@ -29,9 +28,44 @@ export function parse(tokens: Token[]): AST.Program {
     return { type: "program", body };
   }
 
-  /** 式の解析 */
   function parseExpression(): AST.Expression {
-    return parseOr();
+    return parseAssign();
+  }
+
+  function parseAssign(): AST.Expression {
+    const node = parseIf();
+    if (peek().type === "EQ") {
+      take("EQ");
+      if (node.type !== "identifier") {
+        throw new Error("Invalid left-hand side in assignment");
+      }
+      return {
+        type: "assign",
+        variable: node,
+        value: parseExpression(),
+      };
+    }
+    return node;
+  }
+
+  function parseIf(): AST.Expression {
+    const node = parseOr();
+    if (peek().type === "IF") {
+      take("IF");
+      const consequent = parseExpression();
+      let alternate;
+      if (peek().type === "ELSE") {
+        take("ELSE");
+        alternate = parseExpression();
+      }
+      return {
+        type: "if",
+        cond: node,
+        consequent,
+        alternate,
+      };
+    }
+    return node;
   }
 
   function parseOr(): AST.Expression {
@@ -123,7 +157,6 @@ export function parse(tokens: Token[]): AST.Program {
     return parseFunctionCall();
   }
 
-  /** 関数呼び出しの解析 */
   function parseFunctionCall(): AST.Expression {
     let node = parseFactor();
 
@@ -145,7 +178,6 @@ export function parse(tokens: Token[]): AST.Program {
     return node;
   }
 
-  /** 因子の解析 */
   function parseFactor(): AST.Expression {
     switch (peek().type) {
       case "LPAREN":
@@ -162,7 +194,6 @@ export function parse(tokens: Token[]): AST.Program {
 
       case "IDENTIFIER":
         const name = take("IDENTIFIER").value;
-        if (peek().type === "EQ") return parseAssign(name);
         return { type: "identifier", name };
 
       case "RETURN":
@@ -184,15 +215,6 @@ export function parse(tokens: Token[]): AST.Program {
       default:
         throw new Error("Unexpected factor token: " + JSON.stringify(peek()));
     }
-  }
-
-  function parseAssign(name: string): AST.Assign {
-    take("EQ");
-    return {
-      type: "assign",
-      variable: { type: "identifier", name },
-      value: parseExpression(),
-    };
   }
 
   function parseFunctionFactor(): AST.FunctionFactor {
