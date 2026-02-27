@@ -40,7 +40,11 @@ function setVariable(env: Environment, name: string, value: any): any {
 
 export function evaluate(node: AST.Program): any {
   function evaluateProgram(node: AST.Program, env: Environment): any {
-    node.body.forEach((f) => evaluateFactor(f, env));
+    let res: any;
+    for (const e of node.body) {
+      res = evaluateExpression(e, env);
+    }
+    return res;
   }
 
   function evaluateExpression(node: AST.Expression, env: Environment): any {
@@ -50,6 +54,8 @@ export function evaluate(node: AST.Program): any {
           return evaluateBinary(node, env);
         case "unaryExpression":
           return evaluateUnary(node, env);
+        case "functionCall":
+          return evaluateFunctionCall(node, env);
         default:
           return evaluateFactor(node, env);
       }
@@ -59,34 +65,61 @@ export function evaluate(node: AST.Program): any {
 
   function evaluateBinary(node: AST.BinaryExpression, env: Environment): any {
     // ショートサーキットが必要な論理演算
-    if (node.op === "OR") return evaluateExpression(node.lhs, env) || evaluateExpression(node.rhs, env);
-    if (node.op === "AND") return evaluateExpression(node.lhs, env) && evaluateExpression(node.rhs, env);
+    if (node.op === "OR")
+      return (
+        evaluateExpression(node.lhs, env) || evaluateExpression(node.rhs, env)
+      );
+    if (node.op === "AND")
+      return (
+        evaluateExpression(node.lhs, env) && evaluateExpression(node.rhs, env)
+      );
 
     const lhs = evaluateExpression(node.lhs, env);
     const rhs = evaluateExpression(node.rhs, env);
 
     switch (node.op) {
-      case "ADD": return lhs + rhs;
-      case "SUB": return lhs - rhs;
-      case "MUL": return lhs * rhs;
-      case "DIV": return lhs / rhs;
-      case "MOD": return lhs % rhs;
-      case "EQEQ": return lhs === rhs;
-      case "NOTEQ": return lhs !== rhs;
-      case "LESS": return lhs < rhs;
-      case "LESSEQ": return lhs <= rhs;
-      case "GREATER": return lhs > rhs;
-      case "GREATEREQ": return lhs >= rhs;
-      default: throw new Error(`Unknown binary operator: ${node.op}`);
+      case "ADD":
+        return lhs + rhs;
+      case "SUB":
+        return lhs - rhs;
+      case "MUL":
+        return lhs * rhs;
+      case "DIV":
+        return lhs / rhs;
+      case "MOD":
+        return lhs % rhs;
+      case "EQEQ":
+        return lhs === rhs;
+      case "NOTEQ":
+        return lhs !== rhs;
+      case "LESS":
+        return lhs < rhs;
+      case "LESSEQ":
+        return lhs <= rhs;
+      case "GREATER":
+        return lhs > rhs;
+      case "GREATEREQ":
+        return lhs >= rhs;
+      default:
+        throw new Error(`Unknown binary operator: ${node.op}`);
     }
   }
 
   function evaluateUnary(node: AST.UnaryExpression, env: Environment): any {
     const param = evaluateExpression(node.param, env);
     switch (node.op) {
-      case "NOT": return !param;
-      default: throw new Error(`Unknown unary operator: ${node.op}`);
+      case "NOT":
+        return !param;
+      default:
+        throw new Error(`Unknown unary operator: ${node.op}`);
     }
+  }
+
+  function evaluateFunctionCall(node: AST.FunctionCall, env: Environment): any {
+    return evaluateExpression(
+      node.callee,
+      env,
+    )(...node.params.map((p) => evaluateExpression(p, env)));
   }
 
   function evaluateFactor(node: AST.Factor, env: Environment): any {
@@ -95,16 +128,18 @@ export function evaluate(node: AST.Program): any {
         return evaluateExpression(node.body, env);
       case "program":
         return evaluateProgram(node, { variables: {}, parent: env });
-      case "functionCall":
-        return getVariable(env, node.callee.name)(...node.params.map(p => evaluateExpression(p, env)));
       case "assign":
-        return setVariable(env, node.variable.name, evaluateExpression(node.value, env));
+        return setVariable(
+          env,
+          node.variable.name,
+          evaluateExpression(node.value, env),
+        );
       case "return":
         throw new ReturnSignal(evaluateExpression(node.value, env));
       case "functionFactor":
         return (...args: any[]) => {
           const childEnv: Environment = { variables: {}, parent: env };
-          node.params.forEach((p, i) => childEnv.variables[p] = args[i]);
+          node.params.forEach((p, i) => (childEnv.variables[p] = args[i]));
           try {
             return evaluateExpression(node.body, childEnv);
           } catch (e) {
@@ -112,10 +147,14 @@ export function evaluate(node: AST.Program): any {
             throw e;
           }
         };
-      case "identifier": return getVariable(env, node.name);
-      case "numberLiteral": return node.value;
-      case "stringLiteral": return node.value;
-      case "booleanLiteral": return node.value;
+      case "identifier":
+        return getVariable(env, node.name);
+      case "numberLiteral":
+        return node.value;
+      case "stringLiteral":
+        return node.value;
+      case "booleanLiteral":
+        return node.value;
       default:
         throw new Error("Unexpected factor node: " + JSON.stringify(node));
     }

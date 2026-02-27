@@ -19,9 +19,12 @@ export function parse(tokens: Token[]): AST.Program {
 
   /** コードの解析 */
   function parseProgram(): AST.Program {
-    const body: AST.Factor[] = [];
+    const body: AST.Expression[] = [];
     while (peek().type !== "END") {
-      body.push(parseFactor());
+      body.push(parseExpression());
+      if (peek().type === "SEMICOLON") {
+        take("SEMICOLON");
+      }
     }
     return { type: "program", body };
   }
@@ -114,14 +117,36 @@ export function parse(tokens: Token[]): AST.Program {
       return {
         type: "unaryExpression",
         op: "NOT",
-        param: parseUnary(), // !!x を可能にするために再帰
+        param: parseUnary(),
       };
     }
-    return parseFactor();
+    return parseFunctionCall();
+  }
+
+  /** 関数呼び出しの解析 */
+  function parseFunctionCall(): AST.Expression {
+    let node = parseFactor();
+
+    while (peek().type === "LPAREN") {
+      take("LPAREN");
+      const params: AST.Expression[] = [];
+      while (peek().type !== "RPAREN") {
+        params.push(parseExpression());
+        if (peek().type === "COMMA") take("COMMA");
+      }
+      take("RPAREN");
+      node = {
+        type: "functionCall",
+        callee: node,
+        params,
+      };
+    }
+
+    return node;
   }
 
   /** 因子の解析 */
-  function parseFactor(): AST.Factor {
+  function parseFactor(): AST.Expression {
     switch (peek().type) {
       case "LPAREN":
         take("LPAREN");
@@ -137,7 +162,6 @@ export function parse(tokens: Token[]): AST.Program {
 
       case "IDENTIFIER":
         const name = take("IDENTIFIER").value;
-        if (peek().type === "LPAREN") return parseFunctionCall(name);
         if (peek().type === "EQ") return parseAssign(name);
         return { type: "identifier", name };
 
@@ -160,21 +184,6 @@ export function parse(tokens: Token[]): AST.Program {
       default:
         throw new Error("Unexpected factor token: " + JSON.stringify(peek()));
     }
-  }
-
-  function parseFunctionCall(name: string): AST.FunctionCall {
-    take("LPAREN");
-    const params: AST.Expression[] = [];
-    while (peek().type !== "RPAREN") {
-      params.push(parseExpression());
-      if (peek().type === "COMMA") take("COMMA");
-    }
-    take("RPAREN");
-    return {
-      type: "functionCall",
-      callee: { type: "identifier", name },
-      params,
-    };
   }
 
   function parseAssign(name: string): AST.Assign {

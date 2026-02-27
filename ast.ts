@@ -1,35 +1,55 @@
 /** コード全体 */
 export type Program = {
   type: "program";
-  body: Factor[];
+  body: Expression[];
 };
 
-/** 式のルート */
-export type Expression = BinaryExpression | UnaryExpression | Factor;
+/** 式 */
+export type Expression =
+  | BinaryExpression
+  | UnaryExpression
+  | FunctionCall
+  | Factor;
 
-/** 二項演算 */
+/** 二項式 */
 export type BinaryExpression = {
   type: "binaryExpression";
   op:
-    | "ADD" | "SUB" | "MUL" | "DIV" | "MOD"
-    | "EQEQ" | "NOTEQ" | "LESS" | "LESSEQ" | "GREATER" | "GREATEREQ"
-    | "AND" | "OR";
+    | "ADD"
+    | "SUB"
+    | "MUL"
+    | "DIV"
+    | "MOD"
+    | "EQEQ"
+    | "NOTEQ"
+    | "LESS"
+    | "LESSEQ"
+    | "GREATER"
+    | "GREATEREQ"
+    | "AND"
+    | "OR";
   lhs: Expression;
   rhs: Expression;
 };
 
-/** 単項演算 */
+/** 単項式 */
 export type UnaryExpression = {
   type: "unaryExpression";
   op: "NOT";
   param: Expression;
 };
 
-/** 因子（最小単位） */
+/** 関数呼び出し */
+export type FunctionCall = {
+  type: "functionCall";
+  callee: Expression;
+  params: Expression[];
+};
+
+/** 因子 */
 export type Factor =
   | { type: "expressionFactor"; body: Expression }
   | Program
-  | FunctionCall
   | Assign
   | Return
   | Identifier
@@ -37,13 +57,6 @@ export type Factor =
   | NumberLiteral
   | StringLiteral
   | BooleanLiteral;
-
-/** 関数呼び出し */
-export type FunctionCall = {
-  type: "functionCall";
-  callee: Identifier;
-  params: Expression[];
-};
 
 /** 代入 */
 export type Assign = {

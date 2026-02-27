@@ -24,7 +24,8 @@ export type Token =
   | { type: "NOT" }
   | { type: "EQ" }
   | { type: "RETURN" }
-  | { type: "FUNCTION" };
+  | { type: "FUNCTION" }
+  | { type: "SEMICOLON" };
 
 export function tokenize(input: string): Token[] {
   const tokens: Token[] = [];
@@ -38,6 +39,11 @@ export function tokenize(input: string): Token[] {
       case "\t":
       case "\n":
       case "\r":
+        i++;
+        continue;
+
+      case ";":
+        tokens.push({ type: "SEMICOLON" });
         i++;
         continue;
 
