@@ -32,6 +32,11 @@ class ContinueSignal extends Error {
 const globalEnv: Environment = {
   variables: {
     print: console.log,
+    range: (start: number, end: number) => {
+      let r: number[] = [];
+      for (let i = start; i <= end; i++) r.push(i);
+      return r;
+    },
   },
 };
 
