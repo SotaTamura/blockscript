@@ -6,10 +6,20 @@ export type Program = {
 
 /** 式 */
 export type Expression =
+  | Assign
+  | If
   | BinaryExpression
   | UnaryExpression
   | FunctionCall
   | Factor;
+
+/** if文 */
+export type If = {
+  type: "if";
+  cond: Expression;
+  consequent: Expression;
+  alternate?: Expression;
+};
 
 /** 二項式 */
 export type BinaryExpression = {
@@ -50,7 +60,6 @@ export type FunctionCall = {
 export type Factor =
   | { type: "expressionFactor"; body: Expression }
   | Program
-  | Assign
   | Return
   | Identifier
   | FunctionFactor
