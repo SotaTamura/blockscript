@@ -109,16 +109,6 @@ export function tokenize(input: string): Token[] {
         i++;
         continue;
 
-      case "?":
-        tokens.push({ type: "IF" });
-        i++;
-        continue;
-
-      case ":":
-        tokens.push({ type: "ELSE" });
-        i++;
-        continue;
-
       case "=":
         if (input[i + 1] === "=") {
           tokens.push({ type: "EQEQ" });
@@ -208,6 +198,14 @@ export function tokenize(input: string): Token[] {
 
             case "function":
               tokens.push({ type: "FUNCTION" });
+              continue;
+
+            case "if":
+              tokens.push({ type: "IF" });
+              continue;
+
+            case "else":
+              tokens.push({ type: "ELSE" });
               continue;
 
             default:

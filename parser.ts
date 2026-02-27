@@ -29,11 +29,16 @@ export function parse(tokens: Token[]): AST.Program {
   }
 
   function parseExpression(): AST.Expression {
-    return parseAssign();
+    switch (peek().type) {
+      case "IF":
+        return parseIf();
+      default:
+        return parseAssign();
+    }
   }
 
   function parseAssign(): AST.Expression {
-    const node = parseIf();
+    const node = parseOr();
     if (peek().type === "EQ") {
       take("EQ");
       if (node.type !== "identifier") {
@@ -49,23 +54,22 @@ export function parse(tokens: Token[]): AST.Program {
   }
 
   function parseIf(): AST.Expression {
-    const node = parseOr();
-    if (peek().type === "IF") {
-      take("IF");
-      const consequent = parseExpression();
-      let alternate;
-      if (peek().type === "ELSE") {
-        take("ELSE");
-        alternate = parseExpression();
-      }
-      return {
-        type: "if",
-        cond: node,
-        consequent,
-        alternate,
-      };
+    take("IF");
+    take("LPAREN");
+    const cond = parseExpression();
+    take("RPAREN");
+    const consequent = parseExpression();
+    let alternate;
+    if (peek().type === "ELSE") {
+      take("ELSE");
+      alternate = parseExpression();
     }
-    return node;
+    return {
+      type: "if",
+      cond,
+      consequent,
+      alternate,
+    };
   }
 
   function parseOr(): AST.Expression {
