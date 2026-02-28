@@ -1,6 +1,17 @@
 import { isDeepStrictEqual } from "util";
 import * as AST from "./ast.ts";
 
+function isSubMultiset(a: any[], b: any[]): boolean {
+  if (a.length > b.length) return false;
+  const bCopy = [...b];
+  for (const item of a) {
+    const index = bCopy.findIndex((x) => isDeepStrictEqual(x, item));
+    if (index === -1) return false;
+    bCopy.splice(index, 1);
+  }
+  return true;
+}
+
 type Environment = {
   variables: Record<string, any>;
   parent?: Environment;
@@ -203,7 +214,7 @@ export function evaluate(node: AST.Program): any {
         return lhs + rhs;
       case "SUB":
         if (lType === "string" && rType === "string")
-          return lhs.replace(rhs, "");
+          return lhs.replaceAll(rhs, "");
         if (Array.isArray(lhs) && Array.isArray(rhs))
           return lhs.filter(
             (li) => !rhs.some((ri) => isDeepStrictEqual(li, ri)),
@@ -253,10 +264,7 @@ export function evaluate(node: AST.Program): any {
         if (lType === "string" && rType === "string")
           return lhs !== rhs && rhs.includes(lhs);
         if (Array.isArray(lhs) && Array.isArray(rhs))
-          return (
-            !isDeepStrictEqual(lhs, rhs) &&
-            lhs.every((li) => rhs.some((ri) => isDeepStrictEqual(li, ri)))
-          );
+          return lhs.length < rhs.length && isSubMultiset(lhs, rhs);
         if (lType === "object" && rType === "object")
           return (
             !isDeepStrictEqual(lhs, rhs) &&
@@ -268,7 +276,7 @@ export function evaluate(node: AST.Program): any {
       case "LESSEQ":
         if (lType === "string" && rType === "string") return rhs.includes(lhs);
         if (Array.isArray(lhs) && Array.isArray(rhs))
-          return lhs.every((li) => rhs.some((ri) => isDeepStrictEqual(li, ri)));
+          return isSubMultiset(lhs, rhs);
         if (lType === "object" && rType === "object")
           return Object.keys(lhs).every((key) =>
             isDeepStrictEqual(lhs[key], rhs[key]),
@@ -278,10 +286,7 @@ export function evaluate(node: AST.Program): any {
         if (lType === "string" && rType === "string")
           return lhs !== rhs && lhs.includes(rhs);
         if (Array.isArray(lhs) && Array.isArray(rhs))
-          return (
-            !isDeepStrictEqual(lhs, rhs) &&
-            rhs.every((ri) => lhs.some((li) => isDeepStrictEqual(li, ri)))
-          );
+          return lhs.length > rhs.length && isSubMultiset(rhs, lhs);
         if (lType === "object" && rType === "object")
           return (
             !isDeepStrictEqual(lhs, rhs) &&
@@ -293,7 +298,7 @@ export function evaluate(node: AST.Program): any {
       case "GREATEREQ":
         if (lType === "string" && rType === "string") return lhs.includes(rhs);
         if (Array.isArray(lhs) && Array.isArray(rhs))
-          return rhs.every((ri) => lhs.some((li) => isDeepStrictEqual(li, ri)));
+          return isSubMultiset(rhs, lhs);
         if (lType === "object" && rType === "object")
           return Object.keys(rhs).every((key) =>
             isDeepStrictEqual(rhs[key], lhs[key]),
