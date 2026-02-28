@@ -39,6 +39,8 @@ TypeScript と Node.js で構築された、シンプルで軽量なプログラ
 - **組み込み関数**:
   - `print(値)`: 値を標準出力に表示します。
   - `range(開始, 終了)`: 開始から終了までの数値を含む配列（例：`range(1, 3)` は `[1, 2, 3]`）を生成します。
+  - `parseNumber`: 文字列を数値に変換します。
+  - `parseString`: 数値を文字列に変換します。
 - **コメント**: `#` で囲まれたテキストはコメントとして無視されます。
 
 ## インストール
@@ -151,7 +153,7 @@ fact = function (n) (
   )
 
   return n * fact(n - 1)
-);
+)
 
 print(fact(5)) #120#
 
@@ -180,7 +182,7 @@ text = ""
 
 for (i in range(0, 9)) (
   if (i == 3) continue;
-  text = text + i;
+  text = text + i
 )
 
 print(text) #012456789#
@@ -210,6 +212,52 @@ Student = function (name, age) {
 
 tanaka = Student("田中", 18)
 tanaka.introduceSelf() #私の名前は田中です。18歳です。#
+
+#継承もどき#
+FreshmanStudent = function (name, age, selectedLanguage) (
+    super = Student(name, age)
+
+    return super + {
+        selectedLanguage: selectedLanguage
+        introduceSelf: function () (
+            super.introduceSelf()
+            print(this.selectedLanguage + "選択です。")
+        )
+    }
+)
+
+tanaka = FreshmanStudent("田中", 18, "ドイツ語")
+tanaka.introduceSelf() #私の名前は田中です。18歳です。ドイツ語選択です。#
+
+#応用例: 3の倍数と3がつく数字の時だけアホになる関数#
+nabeatsu = function (start, end) (
+    for (i in range(start, end)) (
+        iStr = parseString(i)
+        if (i % 3 == 0 | iStr >= "3") (
+            print(iStr + "~~~!!!")
+        ) else (
+            print(i)
+        )
+    )
+)
+
+nabeatsu(1, 100) #1 2 3~~~!!! ...#
+
+#応用例: 素数フィルタ#
+getPrimes = function (max) (
+    for (n in range(2, max)) (
+        is_prime = true
+        for (i in range(2, n - 1)) (
+            if (n % i == 0) (
+                is_prime = false
+                break
+            )
+        )
+        if (is_prime) n else continue
+    )
+)
+
+print(getPrimes(30)) #[2, 3, 5, 7, 11, 13, 17, 19, 23, 29]#
 ```
 
 ## 内部アーキテクチャ
