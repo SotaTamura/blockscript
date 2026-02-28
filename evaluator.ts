@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from "util";
 import * as AST from "./ast.ts";
 
 type Environment = {
@@ -38,6 +39,8 @@ const globalEnv: Environment = {
       for (let i = start; i <= end; i++) r.push(i);
       return r;
     },
+    parseNumber: parseInt,
+    parseString: (n: number) => n.toString(),
   },
 };
 
@@ -190,29 +193,111 @@ export function evaluate(node: AST.Program): any {
 
     const lhs = evaluateExpression(node.lhs, env);
     const rhs = evaluateExpression(node.rhs, env);
+    const lType = typeof lhs;
+    const rType = typeof rhs;
 
     switch (node.op) {
       case "ADD":
+        if (Array.isArray(lhs) && Array.isArray(rhs)) return lhs.concat(rhs);
+        if (lType === "object" && rType === "object") return { ...lhs, ...rhs };
         return lhs + rhs;
       case "SUB":
+        if (lType === "string" && rType === "string")
+          return lhs.replace(rhs, "");
+        if (Array.isArray(lhs) && Array.isArray(rhs))
+          return lhs.filter(
+            (li) => !rhs.some((ri) => isDeepStrictEqual(li, ri)),
+          );
+        if (lType === "object" && rType === "object") {
+          const r: Record<string, any> = {};
+          for (const key in lhs) {
+            r[key] = lhs[key];
+          }
+          for (const key in rhs) {
+            if (isDeepStrictEqual(rhs[key], r[key])) {
+              delete r[key];
+            }
+          }
+          return r;
+        }
         return lhs - rhs;
       case "MUL":
+        if (lType === "string" && rhs >= 0 && Number.isInteger(rhs))
+          return lhs.repeat(rhs);
+        if (lhs >= 0 && Number.isInteger(lhs) && rType === "string")
+          return rhs.repeat(lhs);
+        if (Array.isArray(lhs) && rhs >= 0 && Number.isInteger(rhs)) {
+          const r = [];
+          for (let i = 0; i < rhs; i++) {
+            r.push(...lhs);
+          }
+          return r;
+        }
+        if (lhs >= 0 && Number.isInteger(lhs) && Array.isArray(rhs)) {
+          const r = [];
+          for (let i = 0; i < lhs; i++) {
+            r.push(...rhs);
+          }
+          return r;
+        }
         return lhs * rhs;
       case "DIV":
         return lhs / rhs;
       case "MOD":
         return lhs % rhs;
       case "EQEQ":
-        return lhs === rhs;
+        return isDeepStrictEqual(lhs, rhs);
       case "NOTEQ":
-        return lhs !== rhs;
+        return !isDeepStrictEqual(lhs, rhs);
       case "LESS":
+        if (lType === "string" && rType === "string")
+          return lhs !== rhs && rhs.includes(lhs);
+        if (Array.isArray(lhs) && Array.isArray(rhs))
+          return (
+            !isDeepStrictEqual(lhs, rhs) &&
+            lhs.every((li) => rhs.some((ri) => isDeepStrictEqual(li, ri)))
+          );
+        if (lType === "object" && rType === "object")
+          return (
+            !isDeepStrictEqual(lhs, rhs) &&
+            Object.keys(lhs).every((key) =>
+              isDeepStrictEqual(lhs[key], rhs[key]),
+            )
+          );
         return lhs < rhs;
       case "LESSEQ":
+        if (lType === "string" && rType === "string") return rhs.includes(lhs);
+        if (Array.isArray(lhs) && Array.isArray(rhs))
+          return lhs.every((li) => rhs.some((ri) => isDeepStrictEqual(li, ri)));
+        if (lType === "object" && rType === "object")
+          return Object.keys(lhs).every((key) =>
+            isDeepStrictEqual(lhs[key], rhs[key]),
+          );
         return lhs <= rhs;
       case "GREATER":
+        if (lType === "string" && rType === "string")
+          return lhs !== rhs && lhs.includes(rhs);
+        if (Array.isArray(lhs) && Array.isArray(rhs))
+          return (
+            !isDeepStrictEqual(lhs, rhs) &&
+            rhs.every((ri) => lhs.some((li) => isDeepStrictEqual(li, ri)))
+          );
+        if (lType === "object" && rType === "object")
+          return (
+            !isDeepStrictEqual(lhs, rhs) &&
+            Object.keys(rhs).every((key) =>
+              isDeepStrictEqual(rhs[key], lhs[key]),
+            )
+          );
         return lhs > rhs;
       case "GREATEREQ":
+        if (lType === "string" && rType === "string") return lhs.includes(rhs);
+        if (Array.isArray(lhs) && Array.isArray(rhs))
+          return rhs.every((ri) => lhs.some((li) => isDeepStrictEqual(li, ri)));
+        if (lType === "object" && rType === "object")
+          return Object.keys(rhs).every((key) =>
+            isDeepStrictEqual(rhs[key], lhs[key]),
+          );
         return lhs >= rhs;
       default:
         throw new Error(`Unknown binary operator: ${node.op}`);
@@ -280,6 +365,8 @@ export function evaluate(node: AST.Program): any {
         return node.value;
       case "booleanLiteral":
         return node.value;
+      case "undefined":
+        return undefined;
       default:
         throw new Error("Unexpected factor node: " + JSON.stringify(node));
     }

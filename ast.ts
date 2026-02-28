@@ -94,7 +94,8 @@ export type Factor =
   | NumberLiteral
   | StringLiteral
   | BooleanLiteral
-  | This;
+  | This
+  | Undefined;
 
 /** 配列 */
 export type List = {
@@ -170,4 +171,9 @@ export type BooleanLiteral = {
 /** this */
 export type This = {
   type: "this";
+};
+
+/** undefined */
+export type Undefined = {
+  type: "undefined";
 };

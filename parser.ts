@@ -298,6 +298,10 @@ export function parse(tokens: Token[]): AST.Program {
         take("THIS");
         return { type: "this" };
 
+      case "UNDEFINED":
+        take("UNDEFINED");
+        return { type: "undefined" };
+
       default:
         throw new Error("Unexpected factor token: " + JSON.stringify(peek()));
     }

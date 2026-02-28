@@ -13,6 +13,7 @@ export type Token =
   | { type: "COLON" }
   | { type: "DOT" }
   | { type: "THIS" }
+  | { type: "UNDEFINED" }
   | { type: "ADD" }
   | { type: "SUB" }
   | { type: "MUL" }
@@ -205,6 +206,12 @@ export function tokenize(input: string): Token[] {
           while (i < input.length && /[0-9]/.test(input[i])) {
             value += input[i++];
           }
+          if (input[i] === ".") {
+            value += input[i++];
+            while (i < input.length && /[0-9]/.test(input[i])) {
+              value += input[i++];
+            }
+          }
           tokens.push({ type: "NUMBER", value: Number(value) });
           continue;
         }
@@ -261,6 +268,10 @@ export function tokenize(input: string): Token[] {
 
             case "this":
               tokens.push({ type: "THIS" });
+              continue;
+
+            case "undefined":
+              tokens.push({ type: "UNDEFINED" });
               continue;
 
             default:
